@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cntnt Media System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #4a4a4a; /* Dark gray background */
+            color: #ffffff;
+            margin: 0;
+            overflow: hidden; /* Prevent body scroll, handle inside containers */
+        }
+
+        /* Custom scrollbar for a polished look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #3a3a3a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #6fa8dc;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5b9bd5;
+        }
+
+        /* Custom UI classes based on mockups */
+        .cntnt-logo {
+            font-size: 3.5rem;
+            line-height: 1;
+            letter-spacing: -0.1em;
+            color: #000;
+            position: absolute;
+            bottom: -5px;
+        }
+        
+        .header-light-blue { background-color: #8bb2d9; }
+        .header-dark-blue { background-color: #2a5d8c; }
+        .card-blue { background-color: #63a0d4; transition: transform 0.2s, background-color 0.2s; }
+        .card-blue:hover { transform: scale(1.02); background-color: #5b9bd5; cursor: pointer; }
+        
+        .tab-btn {
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-bottom: none;
+            border-radius: 12px 12px 0 0;
+            padding: 4px 32px;
+            font-size: 1.1rem;
+            color: white;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: #2a5d8c;
+            border-color: white;
+        }
+        .tab-btn:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Animations */
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Radio Button styling */
+        .custom-radio {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: 4px solid #4a4a4a;
+            box-shadow: 0 0 0 2px #63a0d4;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+            flex-shrink: 0;
+        }
+        .custom-radio:checked {
+            background-color: #63a0d4;
+        }
+
+        /* Fullscreen styles */
+        #player-wrapper:fullscreen {
+            border-radius: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+            aspect-ratio: auto !important;
+        }
+        #player-wrapper:-webkit-full-screen {
+            border-radius: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+        }
+        /* Custom YouTube-style player (manual merge mode) */
+        .ytcp { font-family: 'Inter', sans-serif; }
+        .ytcp-hidden { display: none !important; }
+        .ytcp-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 3; }
+        .ytcp-bigplay { width: 80px; height: 80px; border-radius: 50%; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; font-size: 32px; color: #fff; }
+        .ytcp-error { background: rgba(0,0,0,.8); pointer-events: auto; flex-direction: column; gap: 14px; text-align: center; padding: 24px; z-index: 6; }
+        .ytcp-error button { background: #63a0d4; color: #fff; padding: 8px 18px; border-radius: 8px; font-weight: 500; }
+        .ytcp-error button:hover { background: #5b9bd5; }
+        .ytcp-controls { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 12px 8px; background: linear-gradient(to top, rgba(0,0,0,.85), transparent); transition: opacity .25s; z-index: 5; }
+        .ytcp.hide-controls .ytcp-controls { opacity: 0; pointer-events: none; }
+        .ytcp.hide-controls { cursor: none; }
+        .ytcp-progress { position: relative; height: 16px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
+        .ytcp-track { position: relative; width: 100%; height: 4px; background: rgba(255,255,255,.3); border-radius: 2px; transition: height .1s; }
+        .ytcp-progress:hover .ytcp-track, .ytcp-progress.dragging .ytcp-track { height: 6px; }
+        .ytcp-buffered, .ytcp-played { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 2px; }
+        .ytcp-buffered { background: rgba(255,255,255,.5); }
+        .ytcp-played { background: #6fa8dc; }
+        .ytcp-thumb { position: absolute; top: 50%; left: 0; width: 13px; height: 13px; margin-left: -6px; margin-top: -6.5px; border-radius: 50%; background: #6fa8dc; transform: scale(0); transition: transform .1s; pointer-events: none; }
+        .ytcp-progress:hover .ytcp-thumb, .ytcp-progress.dragging .ytcp-thumb { transform: scale(1); }
+        .ytcp-row { display: flex; align-items: center; gap: 8px; color: #fff; }
+        .ytcp-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: #fff; background: none; border: none; cursor: pointer; font-size: 17px; border-radius: 6px; }
+        .ytcp-btn:hover { background: rgba(255,255,255,.15); }
+        .ytcp-time { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 4px; }
+        .ytcp-badge { font-size: 11px; border: 1px solid rgba(255,255,255,.6); border-radius: 4px; padding: 0 5px; }
+        .ytcp-vol { width: 70px; accent-color: #6fa8dc; cursor: pointer; }
+        #yt-custom-player:fullscreen { width: 100vw !important; height: 100vh !important; aspect-ratio: auto !important; }
+        #yt-custom-player:-webkit-full-screen { width: 100vw !important; height: 100vh !important; aspect-ratio: auto !important; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+    <!-- Top Header Bar -->
+    <div class="flex h-12 w-full shadow-md z-20">
+        <!-- Logo -->
+        <div class="w-48 header-light-blue flex items-center justify-center relative overflow-hidden flex-shrink-0">
+            <span class="cntnt-logo">cntnt</span>
+        </div>
+        
+        <!-- Search -->
+        <div class="flex-1 header-dark-blue flex items-center justify-center text-white relative">
+            <i class="fa fa-search absolute left-1/2 transform -translate-x-[110px]"></i>
+            <input id="global-search" type="text" placeholder="Search for content..." 
+                   class="bg-transparent outline-none w-64 text-center placeholder-gray-300 pl-6 border-b border-transparent focus:border-white transition-colors"
+                   onkeypress="handleSearch(event)">
+        </div>
+        
+        <!-- Clock -->
+        <div class="w-48 header-light-blue flex items-center justify-center text-lg text-black font-medium flex-shrink-0">
+            <span id="clock-display">1:00 pm</span>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex px-8 pt-1 space-x-2 border-b border-gray-500 bg-[#4a4a4a] z-10 flex-shrink-0" id="tabs-container">
+        <!-- Tabs injected by JS -->
+    </div>
+
+    <!-- Main Content Area -->
+    <div id="main-content" class="flex-1 relative overflow-y-auto w-full h-full p-6">
+        <!-- Dynamic content injected here -->
+    </div>
+
+    <!-- Persistent Footer for YouTube mode -->
+    <div id="invidious-footer" class="fixed bottom-2 left-2 text-xs text-gray-300 hidden z-50">
+        Powered by Invidious
+    </div>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            activeTab: 'games', // games, apps, browser, youtube
+            view: 'grid',       // grid, player, settings
+            selectedItem: null,
+            searchQuery: '',
+            ytMethod: 'pre',    // pre (360p), manual (720p dash)
+            ytSearchTriggered: false,
+            ytInstance: 'https://invidious.f5.si', // updated to whichever instance answered the search
+            isLoading: false,
+            browserAlertDismissed: false
+        };
+
+        // --- Custom Content Configuration (Full URLs on every entry) ---
+        const myGames = [
+            {
+                id: 'game-bp',
+                title: 'Bad Piggies',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/bp/index.html',
+                image: 'https://i.ytimg.com/vi/YsCpDaSooWA/maxresdefault.jpg'
+            },
+            {
+                id: 'game-ctr',
+                title: 'Cut The Rope',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/ctr/resize/index.html',
+                image: 'https://www.coolmathgames.com/sites/default/files/CuttheRope_OG-logo.jpg'
+            },
+            {
+                id: 'game-sm',
+                title: 'Slice Master',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/sm/index.html',
+                image: 'https://imgs.crazygames.com/slice-master_16x9/20240731033229/slice-master_16x9-cover?metadata=none&quality=60&height=5258'
+            },
+            {
+                id: 'game-fb',
+                title: 'Flappy Bird',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/scratchget/index.html?id=1376043784',
+                image: 'https://techfrontier.com.au/nitropack_static/qoEzaUnVVMmdfnkgmWKdqPZHmHyfhDwG/assets/images/optimized/rev-b34b47c/techfrontier.com.au/wp-content/uploads/2025/07/Remembering-Flappy-Bird.jpg'
+            },
+            {
+                id: 'game-bb2',
+                title: 'Block Blast',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/bb2/index.html',
+                image: 'https://i0.wp.com/mobilegamer.biz/wp-content/uploads/2026/05/1500x500.jpg?fit=1200%2C400&ssl=1'
+            },
+            {
+                id: 'game-abswf',
+                title: 'Angry Birds',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/ab/index.html',
+                image: 'https://www.angrybirds.com/wp-content/uploads/2026/07/AB-Classic-Key-Art-1920x1080-1-1300x731.jpg'
+            },
+            {
+                id: 'game-cc1',
+                title: 'Cookie Clicker',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/duckget/index.html#/class/cookie-clicker',
+                image: 'https://assets.nintendo.com/image/upload/q_auto/f_auto/store/software/switch/70010000066299/432bf350e866b2544f9a5cd80de83e0c24f4efddfd7811016c4aa33e48c5df7c'
+            },
+            {
+                id: 'game-gd',
+                title: 'Geometry Dash',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/gd/index.html?no-vc',
+                image: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/322170/capsule_616x353.jpg?t=1775300400'
+            },
+            {
+                id: 'game-db',
+                title: 'Drift Boss',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/duckget/index.html#/class/drift-boss',
+                image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTMW_L-ZhbnvWj1lwNrWeAGDaK0rG0lCw52zSIsTfTmWNZ9oOVhXvQ_oJRA&s=10'
+            },
+            {
+                id: 'game-r1',
+                title: 'Run 1',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/r1/index.html',
+                image: 'https://www.coolmathgames.com/sites/default/files/Run_OG-logo.jpg'
+            },
+            {
+                id: 'game-r2',
+                title: 'Run 2',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/r2/index.html',
+                image: 'https://i.ytimg.com/vi/rrlBP5xyvAE/maxresdefault.jpg'
+            },
+            {
+                id: 'game-r3',
+                title: 'Run 3',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/duckget/index.html#/class/run-3',
+                image: 'https://www.coolmathgames.com/sites/default/files/Run3_OG-logo.jpg'
+            },
+            {
+                id: 'game-slope',
+                title: 'Slope',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/slope/index.html',
+                image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSbK0Z7YcPDuTOdBnnCceSa27YZ8_OGnKhon6sOtDuX6HbZ_RMiWgpDzPI&s=10'
+            },
+            {
+                id: 'game-bb1',
+                title: 'Basket Bros',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/bb/index.html?h',
+                image: 'https://imgs.crazygames.com/basketbros_16x9/20251107022434/basketbros_16x9-cover?metadata=none&quality=100&width=1200&height=630&fit=crop'
+            },
+            {
+                id: 'game-fob',
+                title: 'Football Bros',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/fob/index.html',
+                image: 'https://hotgames.io/data/image/game/footballbro.png'
+            },
+            {
+                id: 'game-baseb',
+                title: 'Baseball Bros',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/baseb/index.html',
+                image: 'https://gplay-15.surge.sh/img/baseb.png'
+            },
+            {
+                id: 'game-tif',
+                title: 'Tiny Fishing',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/tif/index.html',
+                image: 'https://www.coolmathgames.com/sites/default/files/TinyFishing_OG-logo.jpg'
+            },
+            {
+                id: 'game-blo',
+                title: 'Bloxorz',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/blo/index.html',
+                image: 'https://www.coolmathgames.com/sites/default/files/Bloxorz_OG-logo.jpg'
+            },
+            {
+                id: 'game-gs',
+                title: 'Google Snake',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/gs/resize/index.html',
+                image: 'https://www.snakegame.net/media/google-snake.png'
+            },
+            {
+                id: 'game-smb',
+                title: 'Mario Bros',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/duckget/index.html#/class/super-mario-bros',
+                image: 'https://www.nintendo.com/eu/media/images/10_share_images/games_15/virtual_console_nintendo_3ds_7/SI_3DSVC_SuperMarioBros_image1600w.jpg'
+            },
+            {
+                id: 'game-uno',
+                title: 'UNO!',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/duckget/index.html#/class/uno',
+                image: 'https://assets.nintendo.com/image/upload/q_auto/f_auto/store/software/switch/70010000034088/ac97854c142c719f8ae843106d43511db61822eb9bdb78e2c1a98ea0ae3b6c08'
+            },
+            {
+                id: 'game-jj',
+                title: 'Jetpack Joyride',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/duckget/index.html#/class/jetpack-joyride',
+                image: 'https://imgs.crazygames.com/jetpack-joyride-pcp_16x9/20250121090354/jetpack-joyride-pcp_16x9-cover?metadata=none&quality=100&width=1200&height=630&fit=crop'
+            },
+            {
+                id: 'game-c',
+                title: 'Google Cricket',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/c/resize/index.html',
+                image: 'https://images.indianexpress.com/2020/04/Google-Cricket-Doodle-759.jpg'
+            },
+            {
+                id: 'game-gso',
+                title: 'Google Solitaire',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/gso/index.html',
+                image: 'https://cdn.k4.games/files/03286/google-solitaire.png'
+            },
+            {
+                id: 'game-gb',
+                title: 'Google Baseball',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/gb/index.html',
+                image: 'https://www.google.com/logos/doodles/2019/fourth-of-july-2019-6225363087654912.2-2xa.gif'
+            },
+            {
+                id: 'game-pvz',
+                title: 'Plants vs Zombies',
+                type: 'game',
+                src: 'https://gplay-15.surge.sh/html/duckget/index.html#/class/plants-vs-zombies',
+                image: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3590/header.jpg?t=1777394124'
+            }
+        ];
+
+        const myApps = [
+            {
+                id: 'a1',
+                title: 'Wikipedia',
+                type: 'app',
+                src: 'https://en.wikipedia.org/wiki/Main_Page',
+                image: 'https://upload.wikimedia.org/wikipedia/en/thumb/8/80/Wikipedia-logo-v2.svg/1200px-Wikipedia-logo-v2.svg.png'
+            },
+            {
+                id: 'a2',
+                title: 'Calculator',
+                type: 'app',
+                src: 'https://www.desmos.com/scientific',
+                image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Desmos_logo.svg/1024px-Desmos_logo.svg.png'
+            }
+        ];
+
+        const db = {
+            games: myGames,
+            apps: myApps,
+            youtube: []
+        };
+
+        const tabs = ['games', 'apps', 'browser', 'youtube'];
+
+        // --- Core Application Logic ---
+
+        function dismissBrowserAlert() {
+            state.browserAlertDismissed = true;
+            const alertEl = document.getElementById('browser-alert');
+            if (alertEl) {
+                alertEl.remove();
+            }
+        }
+
+        function toggleAreaFullscreen() {
+            const wrapper = document.getElementById('player-wrapper');
+            const icon = document.getElementById('btn-maximize-icon');
+            
+            if (wrapper.classList.contains('fixed')) {
+                wrapper.classList.remove('fixed', 'inset-0', 'z-[100]', 'rounded-none');
+                wrapper.classList.add('relative', 'rounded-xl', 'aspect-video');
+                icon.className = 'fa fa-window-maximize';
+            } else {
+                wrapper.classList.remove('relative', 'rounded-xl', 'aspect-video');
+                wrapper.classList.add('fixed', 'inset-0', 'z-[100]', 'rounded-none');
+                icon.className = 'fa fa-window-restore';
+            }
+        }
+
+        function toggleFullscreen() {
+            const elem = document.getElementById('player-wrapper');
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'pm' : 'am';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            document.getElementById('clock-display').innerText = `${hours}:${minutes} ${ampm}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- Invidious instance discovery + resilient search ---
+        const FALLBACK_INSTANCES = [
+            'https://invidious.f5.si',
+            'https://inv.nadeko.net',
+            'https://yewtu.be',
+            'https://invidious.nerdvpn.de',
+            'https://invidious.privacyredirect.com'
+        ];
+        // Additional community instances (plain http / raw IPs; many may be offline at any given time)
+        const EXTRA_INSTANCES = [
+            'http://146.71.85.119:14120',
+            'http://90.163.146.169:3001',
+            'http://157.254.18.46:14120',
+            'http://194.35.13.226:13000',
+            'http://118.71.244.135:1224',
+            'http://123.24.182.22:3001',
+            'http://37.114.50.170:3000',
+            'http://14.225.212.141:3000',
+            'http://47.145.207.195:3000',
+            'http://14.224.215.173:3000',
+            'http://74.102.17.26:8203',
+            'http://116.104.88.140:3000',
+            'http://45.158.116.183',
+            'http://95.182.97.252:3000',
+            'http://138.124.102.98:3000',
+            'http://youtube.tntech.pro',
+            'http://92.217.193.167'
+        ];
+        const CORS_PROXIES = [
+            u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+            u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+        ];
+        let instanceCache = null;
+
+        function fetchJSON(url, timeoutMs = 7000) {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+            return fetch(url, { signal: ctrl.signal })
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .finally(() => clearTimeout(timer));
+        }
+
+        // Ask the official instance directory for healthy instances that allow browser (CORS) API calls
+        async function getInstances() {
+            if (instanceCache) return instanceCache;
+            let list = [];
+            try {
+                const data = await fetchJSON('https://api.invidious.io/instances.json?sort_by=type,health', 6000);
+                list = data
+                    .filter(([, info]) => info.api === true && info.cors === true && info.type === 'https')
+                    .map(([, info]) => info.uri.replace(/\/$/, ''));
+            } catch (e) {
+                console.warn('Could not load instance list, using fallbacks', e);
+            }
+            instanceCache = [...new Set([...list.slice(0, 6), ...FALLBACK_INSTANCES])];
+            return instanceCache;
+        }
+
+        async function searchInvidious(query) {
+            const path = `/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
+            const primary = await getInstances();
+            // Shuffle the extra instances so load is spread and dead ones don't always come first
+            const extras = [...EXTRA_INSTANCES].sort(() => Math.random() - 0.5)
+                .filter(u => !primary.includes(u));
+            const all = [...primary, ...extras];
+
+            const attempt = base => fetchJSON(base + path, 6000).then(data => {
+                if (!Array.isArray(data)) throw new Error('Bad response');
+                state.ytInstance = base;
+                return data;
+            });
+
+            // 1) Race instances directly in batches of 6 (works when they send CORS headers)
+            for (let i = 0; i < all.length; i += 6) {
+                try {
+                    return await Promise.any(all.slice(i, i + 6).map(attempt));
+                } catch (e) { /* whole batch failed, try the next one */ }
+            }
+            console.warn('Direct instance requests failed, trying CORS proxies');
+
+            // 2) Fall back to CORS proxies (the proxy makes the request, so browser CORS doesn't apply)
+            const proxyAttempt = (base, proxy) => fetchJSON(proxy(base + path), 9000).then(data => {
+                if (!Array.isArray(data)) throw new Error('Bad response');
+                state.ytInstance = base;
+                return data;
+            });
+            for (let i = 0; i < all.length; i += 4) {
+                const batch = all.slice(i, i + 4).flatMap(b => CORS_PROXIES.map(px => proxyAttempt(b, px)));
+                try {
+                    return await Promise.any(batch);
+                } catch (e) { /* next batch */ }
+            }
+            throw new Error('All Invidious instances failed');
+        }
+
+        async function handleSearch(e) {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                state.searchQuery = query;
+                
+                if (state.activeTab === 'youtube') {
+                    if (query) {
+                        state.isLoading = true;
+                        state.ytSearchTriggered = true;
+                        state.view = 'grid';
+                        render();
+
+                        try {
+                            const data = await searchInvidious(query);
+                            
+                            if (Array.isArray(data)) {
+                                db.youtube = data.filter(item => item.type === 'video').map(v => ({
+                                    id: v.videoId,
+                                    title: v.title,
+                                    description: v.author
+                                }));
+                            } else {
+                                db.youtube = [];
+                            }
+                            
+                            if (db.youtube.length === 0) {
+                                db.youtube = [{ id: 'error', title: 'No videos found.' }];
+                            }
+                        } catch (error) {
+                            console.error("YouTube search failed:", error);
+                            db.youtube = [{ id: 'error', title: 'Search failed. All Invidious instances are unreachable right now - try again in a moment.' }];
+                        }
+                        
+                        state.isLoading = false;
+                        render();
+                    }
+                } else if (state.activeTab !== 'browser') {
+                    state.view = 'grid';
+                    render();
+                }
+            }
+        }
+
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            state.selectedItem = null;
+            state.searchQuery = '';
+            document.getElementById('global-search').value = '';
+            
+            if (tabName === 'youtube') {
+                state.view = state.ytSearchTriggered ? 'grid' : 'settings';
+            } else if (tabName === 'browser') {
+                state.view = 'browser';
+            } else {
+                state.view = 'grid';
+            }
+            render();
+        }
+
+        function setYTMethod(method) {
+            state.ytMethod = method;
+            render();
+        }
+
+        function selectItem(item) {
+            state.selectedItem = item;
+            state.view = 'player';
+            render();
+        }
+
+        // --- STREAMING_CHUNK:Rendering Engine ---
+        
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = tabs.map(tab => `
+                <button onclick="switchTab('${tab}')" 
+                        class="tab-btn capitalize focus:outline-none ${state.activeTab === tab ? 'active' : ''}">
+                    ${tab}
+                </button>
+            `).join('');
+        }
+
+        function render() {
+            renderTabs();
+            const contentArea = document.getElementById('main-content');
+
+            // Tear down any previous custom player and stop leftover media so nothing keeps playing/downloading
+            if (ytPlayerCleanup) { ytPlayerCleanup(); ytPlayerCleanup = null; }
+            contentArea.querySelectorAll('video, audio').forEach(m => {
+                try { m.pause(); m.removeAttribute('src'); m.load(); } catch (e) {}
+            });
+            const footer = document.getElementById('invidious-footer');
+            
+            if (state.activeTab === 'youtube') {
+                footer.classList.remove('hidden');
+            } else {
+                footer.classList.add('hidden');
+            }
+
+            let html = '';
+
+            if (state.activeTab === 'games' || state.activeTab === 'apps') {
+                if (state.view === 'grid') {
+                    html = renderGrid(state.activeTab);
+                } else if (state.view === 'player') {
+                    html = renderPlayer(state.activeTab);
+                }
+            } else if (state.activeTab === 'browser') {
+                html = renderBrowser();
+            } else if (state.activeTab === 'youtube') {
+                if (state.view === 'settings') {
+                    html = renderYTSettings();
+                } else if (state.view === 'grid') {
+                    html = renderYTGrid();
+                } else if (state.view === 'player') {
+                    html = renderYTPlayer();
+                }
+            }
+
+            contentArea.innerHTML = `<div class="animate-fade-in w-full h-full">${html}</div>`;
+            
+            if (state.activeTab === 'youtube' && state.view === 'player' && state.ytMethod === 'manual') {
+                attachManualSyncLogic();
+            }
+        }
+
+        // --- STREAMING_CHUNK:View Renderers ---
+
+        function renderGrid(tab) {
+            const isApp = tab === 'apps';
+            const gridCols = isApp ? 'grid-cols-6' : 'grid-cols-4';
+            const aspectRatio = isApp ? 'aspect-square' : 'aspect-video';
+            
+            let items = db[tab];
+
+            if (state.searchQuery) {
+                const q = state.searchQuery.toLowerCase();
+                items = items.filter(i => i.title.toLowerCase().includes(q));
+            }
+
+            return `
+                <div class="max-w-7xl mx-auto pb-10">
+                    <div class="grid ${gridCols} gap-6">
+                        ${items.map(item => `
+                            <div class="flex flex-col items-center">
+                                <div onclick='selectItem(${JSON.stringify(item)})' 
+                                     class="w-full ${aspectRatio} card-blue rounded-3xl flex items-center justify-center text-center shadow-lg relative overflow-hidden group">
+                                    <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300/2a5d8c/ffffff?text=' + encodeURIComponent('${item.title}')">
+                                </div>
+                                <span class="mt-2 text-lg font-medium self-start pl-2 truncate w-full" title="${item.title}">${item.title}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPlayer(tab) {
+            const item = state.selectedItem;
+            const otherItems = db[tab].filter(i => i.id !== item.id).slice(0, 3);
+            
+            return `
+                <div class="flex flex-col md:flex-row gap-6 h-full max-w-7xl mx-auto">
+                    <!-- Main Player Area -->
+                    <div class="flex-1 flex flex-col h-full">
+                        <div id="player-wrapper" class="w-full aspect-video bg-[#63a0d4] rounded-xl flex items-center justify-center relative shadow-xl overflow-hidden bg-white group">
+                            <iframe src="${item.src}" sandbox="allow-scripts allow-same-origin allow-forms" class="absolute inset-0 w-full h-full border-0 pointer-events-auto bg-white" allowfullscreen></iframe>
+                            
+                            <!-- Fullscreen Buttons -->
+                            <div class="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <button onclick="toggleAreaFullscreen()" class="bg-black/50 hover:bg-black/80 text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-lg backdrop-blur-sm" title="Take up entire area">
+                                    <i id="btn-maximize-icon" class="fa fa-window-maximize"></i>
+                                </button>
+                                <button onclick="toggleFullscreen()" class="bg-black/50 hover:bg-black/80 text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-lg backdrop-blur-sm" title="Take up entire screen">
+                                    <i class="fa fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <h2 class="text-3xl font-medium mt-4">${item.title}</h2>
+                    </div>
+                    
+                    <!-- Sidebar -->
+                    <div class="w-full md:w-80 flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
+                        <h3 class="text-xl mb-2">Other ${tab}</h3>
+                        ${otherItems.map(other => `
+                            <div class="flex flex-col">
+                                <div onclick='selectItem(${JSON.stringify(other)})' 
+                                     class="w-full aspect-video card-blue rounded-3xl flex items-center justify-center text-center shadow-md relative overflow-hidden group">
+                                    <img src="${other.image}" alt="${other.title}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300/2a5d8c/ffffff?text=' + encodeURIComponent('${other.title}')">
+                                </div>
+                                <span class="mt-2 text-md font-medium self-start pl-2 truncate w-full">${other.title}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- STREAMING_CHUNK:Browser and YouTube Views ---
+
+        function renderBrowser() {
+            const alertHtml = state.browserAlertDismissed ? '' : `
+                <div id="browser-alert" class="bg-blue-900 text-white p-3 shadow-md z-10 flex justify-between items-center px-6">
+                    <div class="flex items-center gap-4">
+                        <i class="fa fa-info-circle text-xl text-blue-300"></i>
+                        <span class="text-sm md:text-base"><strong>Note:</strong> Google won't work as expected here. Type noai.duckduckgo.com into the search bar below to search properly.</span>
+                    </div>
+                    <button onclick="dismissBrowserAlert()" class="text-blue-300 hover:text-white transition-colors focus:outline-none ml-4 p-1" title="Close">
+                        <i class="fa fa-times text-2xl"></i>
+                    </button>
+                </div>
+            `;
+            return `
+                <div class="absolute inset-0 flex flex-col bg-[#4a4a4a]">
+                    ${alertHtml}
+                    <iframe id="browser-frame" src="https://storage.googleapis.com/grammarly/index.html#/search" 
+                            sandbox="allow-scripts allow-same-origin allow-forms" 
+                            class="w-full flex-1 border-none bg-white"></iframe>
+                </div>
+            `;
+        }
+
+        function renderYTSettings() {
+            return `
+                <div class="flex flex-col items-center justify-center h-full max-w-3xl mx-auto text-center -mt-20">
+                    <h2 class="text-4xl font-semibold mb-12">Search for a video to start watching.</h2>
+                    <h3 class="text-xl mb-8">Which method for video playing do you want to use?</h3>
+                    
+                    <div class="flex flex-col gap-6 text-left w-full max-w-lg">
+                        <label class="flex items-start gap-4 cursor-pointer group">
+                            <input type="radio" name="yt-method" class="custom-radio mt-1" 
+                                   ${state.ytMethod === 'pre' ? 'checked' : ''} 
+                                   onclick="setYTMethod('pre')">
+                            <div>
+                                <div class="text-xl group-hover:text-gray-200">Pre-merged video</div>
+                                <div class="text-sm text-gray-300">Video and audio are less likely to desync, but the video quality is low. (360p)</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start gap-4 cursor-pointer group">
+                            <input type="radio" name="yt-method" class="custom-radio mt-1" 
+                                   ${state.ytMethod === 'manual' ? 'checked' : ''} 
+                                   onclick="setYTMethod('manual')">
+                            <div>
+                                <div class="text-xl group-hover:text-gray-200">Manual merged video (Recommended!)</div>
+                                <div class="text-sm text-gray-300">The video quality is higher, but the video and audio are more likely to desync, however desyncing will not happen too much(Thanks, Claude!). (720p)</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderYTGrid() {
+            if (state.isLoading) {
+                return `
+                    <div class="flex flex-col items-center justify-center h-full text-white">
+                        <i class="fa fa-circle-notch fa-spin text-6xl text-blue-400 mb-4"></i>
+                        <h2 class="text-2xl">Searching YouTube for the stuff...</h2>
+                    </div>
+                `;
+            }
+
+            let items = db.youtube;
+            
+            if (items.length === 0 && state.searchQuery === '') {
+                 return `<div class="text-center text-white text-xl mt-10">Search for a video above to begin.</div>`;
+            }
+
+            return `
+                <div class="grid grid-cols-4 gap-6 max-w-7xl mx-auto pb-10">
+                    ${items.map(item => `
+                        <div class="flex flex-col items-center">
+                            <div onclick='selectItem(${JSON.stringify(item)})' 
+                                 class="w-full aspect-video card-blue rounded-3xl flex items-center justify-center p-4 text-center shadow-lg relative overflow-hidden group ${item.id === 'error' ? 'pointer-events-none' : ''}">
+                                ${item.id !== 'error' ? `<img src="https://img.youtube.com/vi/${item.id}/mqdefault.jpg" class="absolute inset-0 w-full h-full object-cover" onerror="this.src='https://placehold.co/320x180/2a5d8c/ffffff?text=No+Thumbnail'">` : `<span class="text-white font-bold whitespace-pre-line text-sm md:text-base z-10 drop-shadow-md bg-black/40 p-2 rounded">${item.title}</span>`}
+                            </div>
+                            <span class="mt-2 text-lg font-medium self-start pl-2 truncate w-full" title="${item.title}">${item.title}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderYTPlayer() {
+            const item = state.selectedItem;
+            
+            let playerHTML = '';
+            
+            if (state.ytMethod === 'pre') {
+                const videoUrl = `${state.ytInstance}/latest_version?id=${item.id}&itag=18&local=true`;
+                playerHTML = `
+                    <video id="yt-single-player" controls autoplay class="w-full h-full object-contain bg-black shadow-xl" src="${videoUrl}"></video>
+                `;
+            } else {
+                const videoUrl = `${state.ytInstance}/latest_version?id=${item.id}&itag=136&local=true`;
+                const audioUrl = `${state.ytInstance}/latest_version?id=${item.id}&itag=140&local=true`;
+
+                playerHTML = `
+                    <div id="yt-custom-player" class="ytcp relative w-full h-full bg-black overflow-hidden select-none">
+                        <video id="yt-dash-video" class="absolute inset-0 w-full h-full object-contain" muted playsinline preload="auto" src="${videoUrl}"></video>
+                        <audio id="yt-dash-audio" preload="auto" src="${audioUrl}"></audio>
+
+                        <div id="ytcp-spinner" class="ytcp-overlay"><i class="fa fa-circle-notch fa-spin text-5xl text-white"></i></div>
+                        <div id="ytcp-bigplay" class="ytcp-overlay ytcp-hidden"><div class="ytcp-bigplay"><i id="ytcp-bigplay-icon" class="fa fa-play" style="margin-left:5px"></i></div></div>
+                        <div id="ytcp-error" class="ytcp-overlay ytcp-error ytcp-hidden">
+                            <i class="fa fa-triangle-exclamation text-4xl text-yellow-300"></i>
+                            <div id="ytcp-error-msg" class="text-white"></div>
+                            <button onclick="setYTMethod('pre')">Switch to pre-merged (360p)</button>
+                        </div>
+
+                        <div id="ytcp-controls" class="ytcp-controls">
+                            <div id="ytcp-progress" class="ytcp-progress">
+                                <div class="ytcp-track">
+                                    <div id="ytcp-buffered" class="ytcp-buffered"></div>
+                                    <div id="ytcp-played" class="ytcp-played"></div>
+                                </div>
+                                <div id="ytcp-thumb" class="ytcp-thumb"></div>
+                            </div>
+                            <div class="ytcp-row">
+                                <button id="ytcp-play" class="ytcp-btn" title="Play / Pause (space)"><i id="ytcp-play-icon" class="fa fa-pause"></i></button>
+                                <button id="ytcp-mute" class="ytcp-btn" title="Mute (m)"><i id="ytcp-mute-icon" class="fa fa-volume-high"></i></button>
+                                <input id="ytcp-vol" class="ytcp-vol" type="range" min="0" max="1" step="0.05" value="1" title="Volume">
+                                <span id="ytcp-time" class="ytcp-time">0:00 / 0:00</span>
+                                <span style="flex:1"></span>
+                                <span class="ytcp-badge">720p</span>
+                                <button id="ytcp-fs" class="ytcp-btn" title="Fullscreen (f)"><i id="ytcp-fs-icon" class="fa fa-expand"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="flex flex-col md:flex-row gap-6 h-full max-w-7xl mx-auto pb-10">
+                    <div class="flex-1 flex flex-col">
+                        <div class="w-full aspect-video bg-[#63a0d4] rounded-none flex items-center justify-center relative bg-black/20">
+                            ${playerHTML}
+                        </div>
+                        <h2 class="text-3xl font-medium mt-4">${item.title}</h2>
+                    </div>
+                    
+                    <div class="w-full md:w-[350px] flex flex-col gap-4">
+                        <h3 class="text-xl mb-4 font-medium border-b border-gray-500 pb-2">Video playing method</h3>
+                        
+                        <label class="flex items-start gap-4 cursor-pointer group">
+                            <input type="radio" name="yt-method-side" class="custom-radio mt-1" 
+                                   ${state.ytMethod === 'pre' ? 'checked' : ''} 
+                                   onclick="setYTMethod('pre')">
+                            <div>
+                                <div class="text-lg group-hover:text-gray-200">Pre-merged video</div>
+                                <div class="text-xs text-gray-300">Video and audio are less likely to desync, but the video quality is low. (360p)</div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start gap-4 cursor-pointer group">
+                            <input type="radio" name="yt-method-side" class="custom-radio mt-1" 
+                                   ${state.ytMethod === 'manual' ? 'checked' : ''} 
+                                   onclick="setYTMethod('manual')">
+                            <div>
+                                <div class="text-lg group-hover:text-gray-200">Manual merged video</div>
+                                <div class="text-xs text-gray-300">The video quality is higher, but the video and audio are more likely to desync. (720p)</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Custom player for Manual merged mode ---
+        // One controller drives a video-only and an audio-only element as if they were a single stream:
+        //  - both are preloaded
+        //  - they only start once BOTH have buffered the current position
+        //  - play / pause / seek always apply to both together
+        //  - if either one runs dry mid-playback, both pause until both have data again (like YouTube)
+
+        let ytPlayerCleanup = null;
+        let ytVolume = 1;
+        let ytMuted = false;
+
+        function attachManualSyncLogic() {
+            const root = document.getElementById('yt-custom-player');
+            const vid = document.getElementById('yt-dash-video');
+            const aud = document.getElementById('yt-dash-audio');
+            if (!root || !vid || !aud) return;
+
+            const $ = id => document.getElementById(id);
+            const ui = {
+                spinner: $('ytcp-spinner'), bigplay: $('ytcp-bigplay'), bigplayIcon: $('ytcp-bigplay-icon'),
+                error: $('ytcp-error'), errorMsg: $('ytcp-error-msg'), controls: $('ytcp-controls'),
+                progress: $('ytcp-progress'), buffered: $('ytcp-buffered'), played: $('ytcp-played'), thumb: $('ytcp-thumb'),
+                play: $('ytcp-play'), playIcon: $('ytcp-play-icon'), mute: $('ytcp-mute'), muteIcon: $('ytcp-mute-icon'),
+                vol: $('ytcp-vol'), time: $('ytcp-time'), fs: $('ytcp-fs'), fsIcon: $('ytcp-fs-icon')
+            };
+            const HIDDEN = 'ytcp-hidden';
+            const START_BUFFER = 2.0;   // seconds both streams must have buffered before (re)starting
+            const openedAt = performance.now();
+
+            let wantPlay = true;        // what the user wants (autoplay on open)
+            let playing = false;        // both elements are actually running
+            let starting = false;
+            let ended = false;
+            let dragging = false;
+            let dragTime = 0;
+            let failed = false;
+            let destroyed = false;
+            let overControls = false;
+            let lastAlignVt = -1;
+            let hideTimer = null;
+            let clickTimer = null;
+
+            vid.muted = true;           // the video stream has no sound; audio comes from the audio element
+
+            // ----- helpers -----
+            const fmt = s => {
+                s = Math.max(0, Math.floor(s || 0));
+                const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+                const pad = n => String(n).padStart(2, '0');
+                return h ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+            };
+            const getDuration = () => {
+                const d = vid.duration;
+                if (isFinite(d) && d > 0) return d;
+                const a = aud.duration;
+                return isFinite(a) && a > 0 ? a : 0;
+            };
+            const bufferedEnd = (m, t = m.currentTime) => {
+                const b = m.buffered;
+                for (let i = 0; i < b.length; i++) {
+                    if (b.start(i) <= t + 0.25 && b.end(i) >= t) return b.end(i);
+                }
+                return t;
+            };
+            const ready = (m, need) => {
+                const dur = getDuration();
+                const left = dur ? dur - m.currentTime : Infinity;
+                return m.readyState >= 3 && !m.seeking &&
+                       bufferedEnd(m) - m.currentTime >= Math.min(need, Math.max(0, left - 0.1));
+            };
+
+            // ----- core sync -----
+            function pauseBoth() {
+                vid.pause();
+                aud.pause();
+                playing = false;
+                aud.playbackRate = 1;
+            }
+
+            function startBoth() {
+                starting = true;
+                const p1 = vid.play();
+                const p2 = aud.play();
+                Promise.all([p1, p2]).then(() => {
+                    if (wantPlay) playing = true; else pauseBoth();
+                }).catch(err => {
+                    pauseBoth();
+                    if (err && err.name === 'NotAllowedError') wantPlay = false; // autoplay blocked: wait for a click
+                }).finally(() => { starting = false; });
+            }
+
+            function seekTo(t) {
+                const dur = getDuration();
+                t = Math.max(0, Math.min(t, dur ? dur - 0.1 : t));
+                ended = false;
+                if (playing) pauseBoth();
+                vid.currentTime = t;
+                aud.currentTime = t;
+                lastAlignVt = -1;
+                showControls();
+            }
+
+            function togglePlay() {
+                if (failed) return;
+                if (ended) { ended = false; wantPlay = true; seekTo(0); }
+                else if (wantPlay) { wantPlay = false; pauseBoth(); }
+                else { wantPlay = true; }
+                showControls();
+                tick();
+            }
+
+            function fail(msg) {
+                failed = true;
+                wantPlay = false;
+                pauseBoth();
+                ui.errorMsg.textContent = msg;
+                ui.error.classList.remove(HIDDEN);
+                ui.spinner.classList.add(HIDDEN);
+            }
+
+            function tick() {
+                if (destroyed || failed) return;
+                const dur = getDuration();
+                const vt = vid.currentTime;
+                const nearEnd = dur && dur - vt < 0.4;
+
+                if (wantPlay && !ended && !dragging) {
+                    if (playing) {
+                        if (!nearEnd && (vid.readyState < 3 || aud.readyState < 3)) {
+                            // One of the two ran out of data: pause BOTH and wait for both to recover
+                            pauseBoth();
+                        } else if (!nearEnd) {
+                            // Keep audio locked to the video
+                            const drift = aud.currentTime - vt;
+                            const abs = Math.abs(drift);
+                            if (abs > 0.3) aud.currentTime = vt;
+                            else if (abs > 0.06) aud.playbackRate = drift > 0 ? 0.95 : 1.05;
+                            else if (aud.playbackRate !== 1) aud.playbackRate = 1;
+                        }
+                    } else if (!starting) {
+                        if (Math.abs(aud.currentTime - vt) > 0.1 && lastAlignVt !== vt) {
+                            aud.currentTime = vt;       // line the audio up, then wait for it to have data there
+                            lastAlignVt = vt;
+                        } else if (ready(vid, START_BUFFER) && ready(aud, START_BUFFER)) {
+                            startBoth();
+                        }
+                    }
+                }
+
+                if (!playing && (vid.readyState === 0 || aud.readyState === 0) && performance.now() - openedAt > 25000) {
+                    fail('This server is taking too long to send the 720p stream.');
+                }
+                updateUI(dur, vt);
+            }
+
+            function updateUI(dur, vt) {
+                const cur = dragging ? dragTime : vt;
+                const pct = dur ? Math.min(100, (cur / dur) * 100) : 0;
+                ui.played.style.width = pct + '%';
+                ui.thumb.style.left = pct + '%';
+                const bEnd = Math.min(bufferedEnd(vid, vt), bufferedEnd(aud, vt));
+                ui.buffered.style.width = (dur ? Math.min(100, Math.max((bEnd / dur) * 100, pct)) : 0) + '%';
+                ui.time.textContent = fmt(cur) + ' / ' + fmt(dur);
+
+                const buffering = wantPlay && !ended && !playing && !failed && !dragging;
+                ui.spinner.classList.toggle(HIDDEN, !buffering);
+                const showBig = (!wantPlay || ended) && !failed;
+                ui.bigplay.classList.toggle(HIDDEN, !showBig);
+                ui.bigplayIcon.className = 'fa ' + (ended ? 'fa-rotate-right' : 'fa-play');
+                ui.playIcon.className = 'fa ' + (ended ? 'fa-rotate-right' : wantPlay ? 'fa-pause' : 'fa-play');
+            }
+
+            // ----- volume -----
+            function applyVolume() {
+                aud.volume = ytVolume;
+                aud.muted = ytMuted;
+                ui.vol.value = ytMuted ? 0 : ytVolume;
+                const icon = (ytMuted || ytVolume === 0) ? 'fa-volume-xmark' : ytVolume < 0.5 ? 'fa-volume-low' : 'fa-volume-high';
+                ui.muteIcon.className = 'fa ' + icon;
+            }
+            function toggleMute() {
+                ytMuted = !ytMuted;
+                if (!ytMuted && ytVolume === 0) ytVolume = 0.5;
+                applyVolume();
+            }
+
+            // ----- fullscreen -----
+            function toggleFs() {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+                } else {
+                    (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+                }
+            }
+            const onFs = () => {
+                const isFs = (document.fullscreenElement || document.webkitFullscreenElement) === root;
+                ui.fsIcon.className = 'fa ' + (isFs ? 'fa-compress' : 'fa-expand');
+            };
+
+            // ----- controls visibility -----
+            function showControls() {
+                root.classList.remove('hide-controls');
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => {
+                    if (wantPlay && !ended && !failed && !dragging && !overControls) root.classList.add('hide-controls');
+                }, 2500);
+            }
+
+            // ----- events -----
+            ui.play.addEventListener('click', togglePlay);
+            ui.mute.addEventListener('click', toggleMute);
+            ui.fs.addEventListener('click', toggleFs);
+            ui.vol.addEventListener('input', () => {
+                ytVolume = parseFloat(ui.vol.value);
+                ytMuted = ytVolume === 0;
+                applyVolume();
+            });
+            ui.vol.addEventListener('change', () => ui.vol.blur());
+
+            vid.addEventListener('click', () => {
+                clearTimeout(clickTimer);
+                clickTimer = setTimeout(togglePlay, 220);
+            });
+            vid.addEventListener('dblclick', () => {
+                clearTimeout(clickTimer);
+                toggleFs();
+            });
+
+            vid.addEventListener('ended', () => { ended = true; wantPlay = false; pauseBoth(); showControls(); });
+            const onMediaError = () => { if (!destroyed) fail("Couldn't load the 720p stream from this server."); };
+            vid.addEventListener('error', onMediaError);
+            aud.addEventListener('error', onMediaError);
+
+            root.addEventListener('mousemove', showControls);
+            root.addEventListener('touchstart', showControls, { passive: true });
+            ui.controls.addEventListener('mouseenter', () => { overControls = true; });
+            ui.controls.addEventListener('mouseleave', () => { overControls = false; showControls(); });
+
+            // Seek bar (drag or click)
+            const timeFromPointer = e => {
+                const r = ui.progress.getBoundingClientRect();
+                const x = Math.min(Math.max(e.clientX - r.left, 0), r.width);
+                return (r.width ? x / r.width : 0) * getDuration();
+            };
+            ui.progress.addEventListener('pointerdown', e => {
+                if (!getDuration() || failed) return;
+                dragging = true;
+                if (playing) pauseBoth();
+                dragTime = timeFromPointer(e);
+                ui.progress.setPointerCapture(e.pointerId);
+                ui.progress.classList.add('dragging');
+                updateUI(getDuration(), vid.currentTime);
+            });
+            ui.progress.addEventListener('pointermove', e => {
+                if (dragging) { dragTime = timeFromPointer(e); updateUI(getDuration(), vid.currentTime); }
+            });
+            ui.progress.addEventListener('pointerup', e => {
+                if (!dragging) return;
+                dragging = false;
+                ui.progress.classList.remove('dragging');
+                seekTo(timeFromPointer(e));
+            });
+            ui.progress.addEventListener('pointercancel', () => {
+                dragging = false;
+                ui.progress.classList.remove('dragging');
+            });
+
+            // Keyboard shortcuts
+            const onKey = e => {
+                if (e.ctrlKey || e.metaKey || e.altKey) return;
+                const tag = (e.target && e.target.tagName) || '';
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+                switch (e.key) {
+                    case ' ': case 'k': e.preventDefault(); togglePlay(); break;
+                    case 'ArrowLeft':   e.preventDefault(); seekTo(vid.currentTime - 5); break;
+                    case 'ArrowRight':  e.preventDefault(); seekTo(vid.currentTime + 5); break;
+                    case 'j': seekTo(vid.currentTime - 10); break;
+                    case 'l': seekTo(vid.currentTime + 10); break;
+                    case 'm': toggleMute(); break;
+                    case 'f': toggleFs(); break;
+                }
+            };
+            document.addEventListener('keydown', onKey);
+            document.addEventListener('fullscreenchange', onFs);
+            document.addEventListener('webkitfullscreenchange', onFs);
+
+            // ----- go -----
+            applyVolume();
+            showControls();
+            const interval = setInterval(tick, 120);
+            tick();
+
+            ytPlayerCleanup = () => {
+                destroyed = true;
+                clearInterval(interval);
+                clearTimeout(hideTimer);
+                clearTimeout(clickTimer);
+                document.removeEventListener('keydown', onKey);
+                document.removeEventListener('fullscreenchange', onFs);
+                document.removeEventListener('webkitfullscreenchange', onFs);
+            };
+        }
+
+        render();
+
+    </script>
+</body>
+</html>
